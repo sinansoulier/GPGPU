@@ -13,7 +13,8 @@ cv::Mat load_image(std::string path){
     return image;
 }
 
-
+// Linearize the RGB values. Images are typically stored in a non-linear 
+// gamma corrected format, so we need to account for this.
 float linearize(float channel) {
     if (channel <= 0.04045) {
         return channel / 12.92;
@@ -22,11 +23,13 @@ float linearize(float channel) {
     }
 }
 
-cv::Vec3f rgbToXyz(cv::Vec3f rgb) {
+cv::Vec3f rgbToXyz(cv::Vec3f rgb) { 
     float r = linearize(rgb[2]);
     float g = linearize(rgb[1]);
     float b = linearize(rgb[0]);
 
+    // Convert from sRGB to the CIE XYZ color space using the D65 illuminant.
+    // The conversion matrix is based on the D65 illuminant (a standard form of daylight).
     float X = r * 0.4124564 + g * 0.3575761 + b * 0.1804375;
     float Y = r * 0.2126729 + g * 0.7151522 + b * 0.0721750;
     float Z = r * 0.0193339 + g * 0.1191920 + b * 0.9503041;
@@ -36,24 +39,30 @@ cv::Vec3f rgbToXyz(cv::Vec3f rgb) {
 
 
 cv::Vec3f xyzToLab(cv::Vec3f xyz) {
+    // The reference white point for D65 illuminant in the XYZ color space.
     float ref_X =  0.95047; 
     float ref_Y =  1.00000;
     float ref_Z =  1.08883;
 
+    // Check if the XYZ values are scaled between 0 to 255, and if so, normalize them to 0 to 1 range.
     if (xyz[0] > 1 || xyz[1] > 1 || xyz[2] > 1){
         xyz[0] = xyz[0] / 255.0f;
         xyz[1] = xyz[1] / 255.0f;
         xyz[2] = xyz[2] / 255.0f;
     }
 
+    // Normalize the XYZ values with the reference white point.
     float x = xyz[0] / ref_X;
     float y = xyz[1] / ref_Y;
     float z = xyz[2] / ref_Z;
 
+    // Convert XYZ to Lab. This involves a piecewise function for each coordinate.
+    // The constants and equations come from the official Lab color space definition.
     x = (x > 0.008856) ? pow(x, 1.0/3.0) : (7.787 * x + 16.0/116.0);
     y = (y > 0.008856) ? pow(y, 1.0/3.0) : (7.787 * y + 16.0/116.0);
     z = (z > 0.008856) ? pow(z, 1.0/3.0) : (7.787 * z + 16.0/116.0);
-
+    
+    // Compute the L*, a*, and b* values from the transformed x, y, z coordinates.
     float L = (116.0 * y) - 16.0;
     float a = 500.0 * (x - y);
     float b = 200.0 * (y - z);
@@ -63,7 +72,7 @@ cv::Vec3f xyzToLab(cv::Vec3f xyz) {
 
 
 
-//ΔEab​=sqrt(L2​−L1​)**2+(a2​−a1​)**2+(b2​−b1​)**2)
+//ΔEab ​= sqrt(L2​−L1​)**2 + (a2​−a1​)**2 + (b2​−b1​)**2)
 float compute_lab(cv::Vec3b pix_img_1, cv::Vec3b pix_img_2){
     cv::Vec3f xyz1 = rgbToXyz(pix_img_1);
     cv::Vec3f lab1 = xyzToLab(xyz1);    
