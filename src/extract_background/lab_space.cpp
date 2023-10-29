@@ -146,4 +146,6 @@ int main(int argc, char** argv){
     return 0;
 }
 
-
+//
+//run with g++ lab_space.cpp -o lab_space `pkg-config --cflags --libs opencv4`
+// ./lab_space "../../subject/bg.jpg" "../../subject/frame.jpg" "image_lab.jpg"
