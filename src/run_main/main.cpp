@@ -1,6 +1,8 @@
 #include "lab_space.hh"
 #include "remove_noise.hh"
 #include "tools.hh"
+#include "histerisis.hh"
+#include "mask.hh"
 
 
 int main(int argc, char** argv){
@@ -22,5 +24,13 @@ int main(int argc, char** argv){
     cv::Mat opened_image = opening(lab_image, 3);
     save_image(output + "image_denoised.jpg", opened_image);
 
+    cv::Mat histerisis_image = histerisis(opened_image, 4, 30);
+    save_image(output + "image_histerisis.jpg", histerisis_image);
+
+    cv::Mat mask_image = Mask(image1, histerisis_image);
+    save_image(output + "image_masked.jpg", mask_image);
+
     return 0;
 }
+
+//  ./main "../../subject/bg.jpg" "../../subject/frame.jpg"
