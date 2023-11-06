@@ -2,8 +2,8 @@
 #include <iostream>
 
 
-cv::Mat load_image(std::string path){
-    cv::Mat image = cv::imread(path, cv::IMREAD_COLOR);
+cv::Mat load_image(std::string path, int type){
+    cv::Mat image = cv::imread(path, type);
     if (image.empty()){
         std::cout << "Could not read the image: " << path << std::endl;
         exit(1);

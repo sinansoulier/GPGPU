@@ -20,45 +20,43 @@ cv::Mat compute_gradient(cv::Mat image){
 
 
 cv::Mat histerisis(const cv::Mat image, int low_threshold, int high_threshold) {
-    cv::Mat gradient_magnitude = compute_gradient(image);
-    // cv::Mat gradient_magnitude = image;
-    cv::Mat edges = cv::Mat::zeros(image.rows, image.cols, CV_32FC1);
+    // cv::Mat gradient_magnitude = compute_gradient(image);
+    cv::Mat gradient_magnitude = image;
+    cv::Mat edges = cv::Mat::zeros(image.rows, image.cols, CV_8UC1);
 
     for (int i = 0; i < gradient_magnitude.rows; i++) {
         for (int j = 0; j < gradient_magnitude.cols; j++) {
             float gradient = gradient_magnitude.at<float>(i, j);
-
+            
             if (gradient > high_threshold) {
-                edges.at<float>(i, j) = 255;
+                edges.at<int>(i, j) = 0;
             } else if (gradient < low_threshold) {
-                edges.at<float>(i, j) = 128;
+                edges.at<int>(i, j) = 128;
             } else{
-                edges.at<float>(i, j) = 0;
-            }   
+                edges.at<int>(i, j) = 255;
+            }
         }
     }
 
-    for (int iter = 0; iter < 100; iter++){
-        for (int i = 0; i < edges.rows; i++) {
-            for (int j = 0; j < edges.cols; j++) {
-                
-                if (edges.at<float>(i, j) == 128) {
-                    for (int dx = -1; dx <= 1; dx++) {
-                        for (int dy = -1; dy <= 1; dy++) {
-                            int nx = i + dx;
-                            int ny = j + dy;
+    for (int i = 0; i < edges.rows; i++) {
+        for (int j = 0; j < edges.cols; j++) {
+            
+            if (edges.at<int>(i, j) == 128) {
+                for (int dx = -1; dx <= 1; dx++) {
+                    for (int dy = -1; dy <= 1; dy++) {
+                        int nx = i + dx;
+                        int ny = j + dy;
 
-                            if (nx >= 0 && nx < edges.rows && ny >= 0 && ny < edges.cols) {
-                                if (edges.at<float>(nx, ny) == 255) {
-                                    edges.at<float>(i, j) = 255;
-                                }
+                        if (nx >= 0 && nx < edges.rows && ny >= 0 && ny < edges.cols) {
+                            if (edges.at<int>(nx, ny) == 0) {
+                                edges.at<int>(i, j) = 0;
                             }
                         }
                     }
+                }
 
-                    if (edges.at<float>(i, j) == 128) {
-                        edges.at<float>(i, j) = 0;
-                    }
+                if (edges.at<int>(i, j) == 128) {
+                    edges.at<int>(i, j) = 255;
                 }
             }
         }

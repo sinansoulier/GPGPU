@@ -15,8 +15,8 @@ int main(int argc, char** argv){
     std::string path_image2 = argv[2];
     std::string output = "images_output/";
 
-    cv::Mat image1 = load_image(path_image1);
-    cv::Mat image2 = load_image(path_image2);
+    cv::Mat image1 = load_image(path_image1, cv::IMREAD_COLOR);
+    cv::Mat image2 = load_image(path_image2, cv::IMREAD_COLOR);
     
     cv::Mat lab_image = compute_lab_image(image1, image2);
     save_image(output + "image_lab.jpg", lab_image);
@@ -24,10 +24,11 @@ int main(int argc, char** argv){
     cv::Mat opened_image = opening(lab_image, 3);
     save_image(output + "image_denoised.jpg", opened_image);
 
-    cv::Mat histerisis_image = histerisis(opened_image, 4, 30);
+    cv::Mat image_opened = load_image(output + "image_denoised.jpg", cv::IMREAD_GRAYSCALE);
+    cv::Mat histerisis_image = histerisis(image_opened, 4, 30);
     save_image(output + "image_histerisis.jpg", histerisis_image);
 
-    cv::Mat mask_image = Mask(image1, histerisis_image);
+    cv::Mat mask_image = Mask(load_image(path_image1, cv::IMREAD_COLOR), histerisis_image);
     save_image(output + "image_masked.jpg", mask_image);
 
     return 0;
