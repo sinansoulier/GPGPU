@@ -10,7 +10,7 @@
 
 
 ```sh
-nix-shell                                            # 1
+nix-shell shell.nix                                           # 1
 cmake -S . -B build --preset release -D USE_CUDA=ON  # 2 (ou debug)
 cmake --build build                                  # 2
 
