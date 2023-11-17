@@ -5,7 +5,7 @@
 #include "logo.h"
 #include <cmath>
 #include <cstring>
-
+#include <vector>
 #include <iostream>
 
 struct rgb {
@@ -20,15 +20,47 @@ struct xyz {
     float x, y, z;
 };
 
-typedef struct {
-  uint8_t* first_frame;
-  bool is_saved;
-} FrameStorage;
+// typedef struct {
+//   uint8_t* first_frame;
+//   bool is_saved;
+// } FrameStorage;
+
+
+
+struct FrameStorage {
+    uint8_t* average_background;  
+    int frame_count = 0;
+    int width, height, pixel_stride;
+};
+
+static FrameStorage frame_storage = {};
 
 // Variable globale pour la structure
-static FrameStorage frame_storage = {0};
+// static FrameStorage frame_storage = {0};
 
 extern "C" {
+    void update_background(uint8_t* current_frame) {
+        if (frame_storage.frame_count == 0 || frame_storage.frame_count == 1)
+            return;
+
+        int width = frame_storage.width; 
+
+        // Compute average background
+        for (int i = 0; i < frame_storage.height; i++) {
+            for (int j = 0; j < frame_storage.width; j++) {
+                rgb* current_pixel = (rgb*)(frame_storage.average_background + i * width * sizeof(rgb) + j * sizeof(rgb));
+                rgb* frame_pixel = (rgb*)(current_frame + i * width * sizeof(rgb) + j * sizeof(rgb));
+
+                int n = frame_storage.frame_count;
+
+                current_pixel->r = (current_pixel->r * n + frame_pixel->r) / (n+1);
+                current_pixel->g = (current_pixel->g * n + frame_pixel->g) / (n+1);
+                current_pixel->b = (current_pixel->b * n + frame_pixel->b) / (n+1);
+            }
+        }
+    }
+
+
     float linearize(float channel) {
         if (channel <= 0.04045)
             return channel / 12.92;
@@ -94,26 +126,26 @@ extern "C" {
         xyz_to_lab(&xyz1, &lab1);
         xyz_to_lab(&xyz2, &lab2);
         
-        float luminance_diff = pow(lab2.l - lab1.l, 2);
-        float a_diff = pow(lab2.a - lab1.a, 2);
-        float b_diff = pow(lab2.b - lab1.b, 2);
+        float luminance_diff = pow(lab2.l - lab1.l, 2) * 0.01;
+        float a_diff = pow(lab2.a - lab1.a, 2) * 0.01;
+        float b_diff = pow(lab2.b - lab1.b, 2) * 0.01;
         
         float lab = sqrt(luminance_diff + a_diff + b_diff);
         return lab;
     }
 
-    void compute_lab_image(uint8_t* buffer , int width, int height, int stride, int pixel_stride)
+    void compute_lab_image(uint8_t* current_frame, uint8_t* background, int width, int height, int stride, int pixel_stride)
     {
         // Allocate new image
         // uint8_t* lab_image = new uint8_t[width * height];
-        if (buffer == nullptr)
+        if (current_frame == nullptr)
             return;
         
         bool is_equal = true;
         for (int y = 0; y < height; ++y)
         {
-            rgb* lineptr1 = (rgb*) (frame_storage.first_frame + y * stride);
-            rgb* lineptr2 = (rgb*) (buffer + y * stride);
+            rgb* lineptr1 = (rgb*) (background + y * stride);
+            rgb* lineptr2 = (rgb*) (current_frame + y * stride);
             for (int x = 0; x < width; ++x)
             {
                 float lab = compute_lab(&lineptr1[x], &lineptr2[x]);
@@ -200,21 +232,94 @@ extern "C" {
         dilatation(image, kernel_size, width, height);
     }
 
+
+    void histerisis(uint8_t* image, int low_threshold, int high_threshold, int width, int height) {
+        for (int i = 0; i < height; i++) {
+            for (int j = 0; j < width; j++) {
+                rgb* pixel = (rgb*)(image + i * width * sizeof(rgb) + j * sizeof(rgb));
+                float current = pixel->r;  
+
+                if (current > high_threshold) {
+                    pixel->r = pixel->g = pixel->b = 255; 
+                } else if (current < low_threshold) {
+                    pixel->r = pixel->g = pixel->b = 0; 
+                } else {
+                    pixel->r = pixel->g = pixel->b = 128; 
+                }
+            }
+        }
+
+        for (int i = 0; i < height; i++) {
+            for (int j = 0; j < width; j++) {
+                rgb* current_pixel = (rgb*)(image + i * width * sizeof(rgb) + j * sizeof(rgb));
+                if (current_pixel->r == 128) {
+                    for (int dx = -1; dx <= 1; dx++) {
+                        for (int dy = -1; dy <= 1; dy++) {
+                            int nx = i + dx;
+                            int ny = j + dy;
+
+                            if (nx >= 0 && nx < height && ny >= 0 && ny < width) {
+                                rgb* neighbor_pixel = (rgb*)(image + nx * width * sizeof(rgb) + ny * sizeof(rgb));
+                                if (neighbor_pixel->r == 255) {
+                                    current_pixel->r = current_pixel->g = current_pixel->b = 255;
+                                }
+                            }
+                        }
+                    }
+
+                    current_pixel->r = current_pixel->g = current_pixel->b = 0;
+                }
+            }
+        }
+    }
+
+
+    void mask(uint8_t* binaryImage, uint8_t* originalImage, int width, int height, float alpha) {
+        const rgb redTint = {255, 0, 0};
+
+        for (int i = 0; i < height; i++) {
+            for (int j = 0; j < width; j++) {
+                rgb* binaryPixel = (rgb*)(binaryImage + i * width * sizeof(rgb) + j * sizeof(rgb));
+                rgb* originalPixel = (rgb*)(originalImage + i * width * sizeof(rgb) + j * sizeof(rgb));
+
+                if (binaryPixel->r == 255) {  
+                    originalPixel->r = static_cast<uint8_t>(alpha * redTint.r + (1 - alpha) * originalPixel->r);
+                    originalPixel->g = static_cast<uint8_t>(alpha * redTint.g + (1 - alpha) * originalPixel->g);
+                    originalPixel->b = static_cast<uint8_t>(alpha * redTint.b + (1 - alpha) * originalPixel->b);
+                }
+            }
+        }
+    }
+
+
     void filter_impl(uint8_t* buffer, int width, int height, int stride, int pixel_stride)
     {
-        // On sauvegarde la première frame
-        if (!frame_storage.is_saved)
-        {
-            uint8_t* pixels_copy = new uint8_t[width * height * pixel_stride];
-            memcpy(pixels_copy, buffer, width * height * pixel_stride);
-            frame_storage.first_frame = pixels_copy;
-            frame_storage.is_saved = true;
+        if (frame_storage.frame_count == 0) {
+            frame_storage.width = width;
+            frame_storage.height = height;
+            frame_storage.pixel_stride = pixel_stride;
+            uint8_t* background = new uint8_t[width * height * pixel_stride];
+            memcpy(background, buffer, width * height * pixel_stride);
+            frame_storage.average_background = background;
+            frame_storage.frame_count++;
         }
-        else
-        {
-            compute_lab_image(buffer, width, height, stride, pixel_stride);
-            opening(buffer, 3, width, height);
-        }
+        
+        // Updated Background
+        uint8_t* current_background = new uint8_t[width * height * pixel_stride];
+        memcpy(current_background, buffer, width * height * pixel_stride);
+        update_background(current_background);
+        frame_storage.frame_count++;
+
+
+        // Filters
+        uint8_t* current_frame = new uint8_t[width * height * pixel_stride];
+        memcpy(current_frame, buffer, width * height * pixel_stride);
+        compute_lab_image(current_frame, frame_storage.average_background,  width, height, stride, pixel_stride);
+        opening(current_frame, 3, width, height);
+        histerisis(current_frame, 4, 30, width, height);
+        mask(current_frame, buffer, width, height, 0.7);
+
+
         // You can fake a long-time process with sleep
         {
             using namespace std::chrono_literals;
