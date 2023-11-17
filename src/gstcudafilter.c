@@ -68,14 +68,6 @@ enum
   PROP_0
 };
 
-typedef struct {
-  uint8_t* first_frame;
-  gboolean is_saved;
-} FrameStorage;
-
-// Variable globale pour la structure
-static FrameStorage frame_storage = {0};
-
 /* pad templates */
 
 /* FIXME: add/remove formats you can handle */
@@ -128,10 +120,6 @@ gst_cuda_filter_class_init (GstCudaFilterClass * klass)
 static void
 gst_cuda_filter_init (GstCudaFilter *cudafilter)
 {
-  GST_DEBUG_OBJECT (cudafilter, "init");
-
-  frame_storage.first_frame = NULL;
-  frame_storage.is_saved = FALSE;
 }
 
 void
@@ -245,24 +233,10 @@ gst_cuda_filter_transform_frame_ip (GstVideoFilter * filter, GstVideoFrame * fra
   int height = GST_VIDEO_FRAME_COMP_HEIGHT(frame, 0);
 
   uint8_t* pixels = GST_VIDEO_FRAME_PLANE_DATA(frame, 0);
-  if (pixels == frame_storage.first_frame) {
-    return GST_FLOW_OK;
-  }
   int plane_stride = GST_VIDEO_FRAME_PLANE_STRIDE(frame, 0);
   int pixel_stride = GST_VIDEO_FRAME_COMP_PSTRIDE(frame, 0);
 
-  // On sauvegarde la première frame
-  if (!frame_storage.is_saved) {
-    uint8_t* pixels_copy = memcpy(malloc(width * height * pixel_stride), pixels, width * height * pixel_stride);
-    frame_storage.first_frame = pixels_copy;
-    frame_storage.is_saved = TRUE;
-    return GST_FLOW_OK;
-  }
-
-  // On récupère la première frame
-  uint8_t* first_frame = frame_storage.first_frame;
-
-  filter_impl(first_frame, pixels, width, height, plane_stride, pixel_stride);
+  filter_impl(pixels, width, height, plane_stride, pixel_stride);
 
   return GST_FLOW_OK;
 }

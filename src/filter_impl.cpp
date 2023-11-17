@@ -4,6 +4,7 @@
 #include <thread>
 #include "logo.h"
 #include <cmath>
+#include <cstring>
 
 #include <iostream>
 
@@ -18,6 +19,14 @@ struct lab {
 struct xyz {
     float x, y, z;
 };
+
+typedef struct {
+  uint8_t* first_frame;
+  bool is_saved;
+} FrameStorage;
+
+// Variable globale pour la structure
+static FrameStorage frame_storage = {0};
 
 extern "C" {
     float linearize(float channel) {
@@ -79,11 +88,6 @@ extern "C" {
         rgb_to_xyz(pix_img_1, &xyz1);
         rgb_to_xyz(pix_img_2, &xyz2);
 
-        // if (xyz1.x != 0.f && xyz1.y != 0.f && xyz1.z != 0.f)
-        //     std::cout << "xyz1 is not 0" << std::endl;
-        // if (xyz2.x != 0.f && xyz2.y != 0.f && xyz2.z != 0.f)
-        //     std::cout << "xyz2 is not 0" << std::endl;
-
         // lab lab1, lab2;
         lab lab1 = { 0, 0, 0 };
         lab lab2 = { 0, 0, 0 };
@@ -98,18 +102,18 @@ extern "C" {
         return lab;
     }
 
-    void compute_lab_image(uint8_t* buffer1, uint8_t* buffer2 , int width, int height, int stride, int pixel_stride)
+    void compute_lab_image(uint8_t* buffer , int width, int height, int stride, int pixel_stride)
     {
         // Allocate new image
         // uint8_t* lab_image = new uint8_t[width * height];
-        if (buffer1 == nullptr)
+        if (buffer == nullptr)
             return;
         
         bool is_equal = true;
         for (int y = 0; y < height; ++y)
         {
-            rgb* lineptr1 = (rgb*) (buffer1 + y * stride);
-            rgb* lineptr2 = (rgb*) (buffer2 + y * stride);
+            rgb* lineptr1 = (rgb*) (frame_storage.first_frame + y * stride);
+            rgb* lineptr2 = (rgb*) (buffer + y * stride);
             for (int x = 0; x < width; ++x)
             {
                 float lab = compute_lab(&lineptr1[x], &lineptr2[x]);
@@ -120,18 +124,22 @@ extern "C" {
                 lineptr2[x].b = lab;
             }
         }
-
-        // if (is_equal)
-        // if (buffer1 == buffer2)
-        //     std::cout << "Images are equal (2)" << std::endl;
-        // else
-        //     std::cout << "Images are not equal" << std::endl;
     }
 
-    void filter_impl(uint8_t* buffer1, uint8_t* buffer2, int width, int height, int stride, int pixel_stride)
+    void filter_impl(uint8_t* buffer, int width, int height, int stride, int pixel_stride)
     {
-        compute_lab_image(buffer1, buffer2, width, height, stride, pixel_stride);
-
+        // On sauvegarde la première frame
+        if (!frame_storage.is_saved)
+        {
+            uint8_t* pixels_copy = new uint8_t[width * height * pixel_stride];
+            memcpy(pixels_copy, buffer, width * height * pixel_stride);
+            frame_storage.first_frame = pixels_copy;
+            frame_storage.is_saved = true;
+        }
+        else
+        {
+            compute_lab_image(buffer, width, height, stride, pixel_stride);
+        }
         // You can fake a long-time process with sleep
         {
             using namespace std::chrono_literals;
