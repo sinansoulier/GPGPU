@@ -5,6 +5,8 @@
 #include "logo.h"
 #include <cmath>
 
+#include <iostream>
+
 struct rgb {
     uint8_t r, g, b;
 };
@@ -38,7 +40,7 @@ extern "C" {
         xyz->z = r * 0.0193339 + g * 0.1191920 + b * 0.9503041;
     }
 
-    void xyz_to_lab(xyz* xgb, lab* lab)
+    void xyz_to_lab(xyz* xyz, lab* lab)
     {
         // The reference white point for D65 illuminant in the XYZ color space.
         float ref_X =  0.95047; 
@@ -46,16 +48,16 @@ extern "C" {
         float ref_Z =  1.08883;
 
         // Check if the XYZ values are scaled between 0 to 255, and if so, normalize them to 0 to 1 range.
-        if (xgb->x > 1 || xgb->y > 1 || xgb->z > 1){
-            xgb->x = xgb->x / 255.0f;
-            xgb->y = xgb->y / 255.0f;
-            xgb->z = xgb->z / 255.0f;
+        if (xyz->x > 1 || xyz->y > 1 || xyz->z > 1){
+            xyz->x = xyz->x / 255.0f;
+            xyz->y = xyz->y / 255.0f;
+            xyz->z = xyz->z / 255.0f;
         }
 
         // Normalize the XYZ values with the reference white point.
-        float x = xgb->x / ref_X;
-        float y = xgb->y / ref_Y;
-        float z = xgb->z / ref_Z;
+        float x = xyz->x / ref_X;
+        float y = xyz->y / ref_Y;
+        float z = xyz->z / ref_Z;
 
         // Convert XYZ to Lab. This involves a piecewise function for each coordinate.
         // The constants and equations come from the official Lab color space definition.
@@ -72,11 +74,19 @@ extern "C" {
     //ΔEab ​= sqrt(L2​−L1​)**2 + (a2​−a1​)**2 + (b2​−b1​)**2)
     float compute_lab(rgb* pix_img_1, rgb* pix_img_2)
     {
-        xyz xyz1, xyz2;
+        xyz xyz1 = { 0, 0, 0 };
+        xyz xyz2 = { 0, 0, 0};
         rgb_to_xyz(pix_img_1, &xyz1);
         rgb_to_xyz(pix_img_2, &xyz2);
 
-        lab lab1, lab2;
+        // if (xyz1.x != 0.f && xyz1.y != 0.f && xyz1.z != 0.f)
+        //     std::cout << "xyz1 is not 0" << std::endl;
+        // if (xyz2.x != 0.f && xyz2.y != 0.f && xyz2.z != 0.f)
+        //     std::cout << "xyz2 is not 0" << std::endl;
+
+        // lab lab1, lab2;
+        lab lab1 = { 0, 0, 0 };
+        lab lab2 = { 0, 0, 0 };
         xyz_to_lab(&xyz1, &lab1);
         xyz_to_lab(&xyz2, &lab2);
         
@@ -94,7 +104,8 @@ extern "C" {
         // uint8_t* lab_image = new uint8_t[width * height];
         if (buffer1 == nullptr)
             return;
-
+        
+        bool is_equal = true;
         for (int y = 0; y < height; ++y)
         {
             rgb* lineptr1 = (rgb*) (buffer1 + y * stride);
@@ -102,12 +113,19 @@ extern "C" {
             for (int x = 0; x < width; ++x)
             {
                 float lab = compute_lab(&lineptr1[x], &lineptr2[x]);
+                is_equal = lineptr1[x].r != lineptr2[x].r || lineptr1[x].g != lineptr2[x].g || lineptr1[x].b != lineptr2[x].b;
 
                 lineptr2[x].r = lab;
                 lineptr2[x].g = lab;
                 lineptr2[x].b = lab;
             }
         }
+
+        // if (is_equal)
+        // if (buffer1 == buffer2)
+        //     std::cout << "Images are equal (2)" << std::endl;
+        // else
+        //     std::cout << "Images are not equal" << std::endl;
     }
 
     void filter_impl(uint8_t* buffer1, uint8_t* buffer2, int width, int height, int stride, int pixel_stride)

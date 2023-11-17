@@ -40,6 +40,8 @@
 #include "gstcudafilter.h"
 #include "filter_impl.h"
 
+#include <stdio.h>
+
 GST_DEBUG_CATEGORY_STATIC (gst_cuda_filter_debug_category);
 #define GST_CAT_DEFAULT gst_cuda_filter_debug_category
 
@@ -243,12 +245,16 @@ gst_cuda_filter_transform_frame_ip (GstVideoFilter * filter, GstVideoFrame * fra
   int height = GST_VIDEO_FRAME_COMP_HEIGHT(frame, 0);
 
   uint8_t* pixels = GST_VIDEO_FRAME_PLANE_DATA(frame, 0);
+  if (pixels == frame_storage.first_frame) {
+    return GST_FLOW_OK;
+  }
   int plane_stride = GST_VIDEO_FRAME_PLANE_STRIDE(frame, 0);
   int pixel_stride = GST_VIDEO_FRAME_COMP_PSTRIDE(frame, 0);
 
   // On sauvegarde la première frame
   if (!frame_storage.is_saved) {
-    frame_storage.first_frame = pixels;
+    uint8_t* pixels_copy = memcpy(malloc(width * height * pixel_stride), pixels, width * height * pixel_stride);
+    frame_storage.first_frame = pixels_copy;
     frame_storage.is_saved = TRUE;
     return GST_FLOW_OK;
   }
