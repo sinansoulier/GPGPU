@@ -21,7 +21,15 @@ add_library(gstcudafilter-cu SHARED src/filter_impl.h src/filter_impl.cu)
 target_link_libraries(gstcudafilter-cu PkgConfig::GStreamerVideo gstcudafilter-base)
 
 # FILTRE EN C++
-add_library(gstcudafilter-cpp SHARED src/filter_impl.h src/filter_impl.cpp)
+add_library(gstcudafilter-cpp
+             SHARED src/filter_impl.h src/filter_impl.cpp
+             src/implem_cpp/background_update.cpp src/implem_cpp/background_update.hh
+             src/implem_cpp/hysteresis.cpp src/implem_cpp/hysteresis.hh
+             src/implem_cpp/remove_noise.cpp src/implem_cpp/remove_noise.hh
+             src/implem_cpp/lab.cpp src/implem_cpp/lab.hh
+             src/implem_cpp/mask.cpp src/implem_cpp/mask.hh
+             src/implem_cpp/utils.hh
+            )
 target_link_libraries(gstcudafilter-cpp PkgConfig::GStreamerVideo gstcudafilter-base) 
 
 
