@@ -65,9 +65,10 @@ float compute_lab(rgb* pix_img_1, rgb* pix_img_2)
     xyz_to_lab(&xyz1, &lab1);
     xyz_to_lab(&xyz2, &lab2);
     
-    float luminance_diff = pow(lab2.l - lab1.l, 2) * 0.01;
-    float a_diff = pow(lab2.a - lab1.a, 2) * 0.01;
-    float b_diff = pow(lab2.b - lab1.b, 2) * 0.01;
+    float norm_coeff = 0.01;
+    float luminance_diff = pow(lab2.l - lab1.l, 2) * norm_coeff;
+    float a_diff = pow(lab2.a - lab1.a, 2) * norm_coeff;
+    float b_diff = pow(lab2.b - lab1.b, 2) * norm_coeff;
     
     float lab = sqrt(luminance_diff + a_diff + b_diff);
     return lab;
