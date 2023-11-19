@@ -49,7 +49,7 @@ extern "C" {
         histerisis(frame_storage.image_buffer, 4, 30, width, height);
         mask(frame_storage.image_buffer, buffer, width, height, 0.5);
 
-        memcpy(buffer, frame_storage.image_buffer, width * height * pixel_stride);
+        // memcpy(buffer, frame_storage.image_buffer, width * height * pixel_stride);
 
         // You can fake a long-time process with sleep
         // {
