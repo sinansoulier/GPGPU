@@ -76,12 +76,9 @@ float compute_lab(rgb* pix_img_1, rgb* pix_img_2)
 
 void compute_lab_image(uint8_t* current_frame, uint8_t* background, int width, int height, int stride, int pixel_stride)
 {
-    // Allocate new image
-    // uint8_t* lab_image = new uint8_t[width * height];
     if (current_frame == nullptr)
         return;
     
-    bool is_equal = true;
     for (int y = 0; y < height; ++y)
     {
         rgb* lineptr1 = (rgb*) (background + y * stride);
@@ -89,7 +86,6 @@ void compute_lab_image(uint8_t* current_frame, uint8_t* background, int width, i
         for (int x = 0; x < width; ++x)
         {
             float lab = compute_lab(&lineptr1[x], &lineptr2[x]);
-            is_equal = lineptr1[x].r != lineptr2[x].r || lineptr1[x].g != lineptr2[x].g || lineptr1[x].b != lineptr2[x].b;
 
             lineptr2[x].r = lab;
             lineptr2[x].g = lab;
