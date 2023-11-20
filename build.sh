@@ -1,5 +1,5 @@
 # nix-shell shell.nix
-rm -rf build *.mp4* *.so*                       # 2
+rm -rf build/ *.mp4* *.so*                       # 2
 cmake -S . -B build --preset release -D USE_CUDA=ON  # 2 (ou debug)
 cmake --build build                                  # 2
 

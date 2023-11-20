@@ -112,6 +112,117 @@ __global__ void compute_lab_image(std::byte* background, std::byte* current_fram
     lineptr2[x].b = lab;
 }
 
+// Get pixel_value of a pixel after erosion
+__device__ float erode(std::byte* image, int x, int y, int kernel_size, int width, int height)
+{
+    int radius = kernel_size / 2;
+    float current_value = ((rgb*) (image + y))[x].r;
+    
+    for (int i = -radius; i <= radius; i++){
+        for (int j = -radius; j <= radius; j++){
+            int x_pos = x + i;
+            int y_pos = y + j;
+
+            if (x_pos >= 0 && x_pos < height &&
+                y_pos >= 0 && y_pos < width)
+                {
+                float value = ((rgb*) (image + x_pos))[y_pos].r;
+                if (value < current_value)
+                    current_value = value;
+            }
+        }
+    }
+
+    return current_value;
+}
+
+// Apply erosion to an image
+__device__ void erosion(std::byte* image, int kernel_size, int width, int height, int x, int y, int stride)
+{
+    ((rgb*) (image + y))[x].r = erode(image, x, y, kernel_size, width, height);
+}
+
+// Get pixel_value of a pixel after dilatation
+__device__ float dilate(std::byte* image, int x, int y, int kernel_size, int width, int height)
+{
+    int radius = kernel_size / 2;
+    float current_value = ((rgb*) (image + y))[x].r;
+
+    for (int i = -radius; i <= radius; i++)
+    {
+        for (int j = -radius; j <= radius; j++)
+        {
+            int x_pos = x + i;
+            int y_pos = y + j;
+
+            if (x_pos >= 0 && x_pos < height && y_pos >= 0 && y_pos < width)
+            {
+                float value = ((rgb*) (image + x_pos))[y_pos].r;
+                if (value > current_value)
+                    current_value = value;
+            }
+        }
+    }
+
+    return current_value;
+}
+
+__device__ void dilatation(std::byte* image, int kernel_size, int width, int height, int x, int y, int stride)
+{
+    ((rgb*) (image + y))[x].r = dilate(image, x, y, kernel_size, width, height);
+}
+
+__global__ void opening(std::byte* image, int kernel_size, int width, int height, int stride)
+{
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+    erosion(image, kernel_size, width, height, x, y, stride);
+    dilatation(image, kernel_size, width, height, x, y, stride);
+}
+
+__global__ void hysterisis_mark(std::byte* image, int low_threshold, int high_threshold, int stride)
+{
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+    rgb* pixel = (rgb*)(image + y * stride + x * sizeof(rgb));
+    float current = pixel->r;
+
+    if (current > high_threshold) {
+        pixel->r = pixel->g = pixel->b = 255;
+    } else if (current < low_threshold) {
+        pixel->r = pixel->g = pixel->b = 0;
+    } else {
+        pixel->r = pixel->g = pixel->b = 128;
+    }
+}
+
+__global__ void hysterisis_compute(std::byte* image, int low_threshold, int high_threshold, int width, int height, int stride)
+{
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+    rgb* current_pixel = (rgb*)(image + y * stride + x * sizeof(rgb));
+    if (current_pixel->r == 128) {
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dy = -1; dy <= 1; dy++) {
+                int nx = x + dx;
+                int ny = y + dy;
+
+                if (nx >= 0 && nx < height && ny >= 0 && ny < width) {
+                    rgb* neighbor_pixel = (rgb*)(image + ny * stride + nx * sizeof(rgb));
+                    if (neighbor_pixel->r == 255) {
+                        current_pixel->r = current_pixel->g = current_pixel->b = 255;
+                    }
+                }
+            }
+        }
+
+        current_pixel->r = current_pixel->g = current_pixel->b = 0;
+    }
+}
+
 namespace
 {
     static FrameStorage frame_storage = { 0 };
@@ -154,8 +265,22 @@ extern "C" {
         dim3 blockSize(16,16);
         dim3 gridSize((width + (blockSize.x - 1)) / blockSize.x, (height + (blockSize.y - 1)) / blockSize.y);
 
-        // remove_red_channel_inp<<<gridSize, blockSize>>>(dBuffer, width, height, pitch);
         compute_lab_image<<<gridSize, blockSize>>>(dBackground, dBuffer, pitch, width, height);
+        err = cudaDeviceSynchronize();
+        CHECK_CUDA_ERROR(err);
+
+        opening<<<gridSize, blockSize>>>(dBuffer, 3, width, height, pitch);
+        err = cudaDeviceSynchronize();
+        CHECK_CUDA_ERROR(err);
+
+        int low_threshold = 4;
+        int high_threshold = 30;
+
+        hysterisis_mark<<<gridSize, blockSize>>>(dBuffer, low_threshold, high_threshold, pitch);
+        err = cudaDeviceSynchronize();
+        CHECK_CUDA_ERROR(err);
+
+        hysterisis_compute<<<gridSize, blockSize>>>(dBuffer, low_threshold, high_threshold, width, height, pitch);
         err = cudaDeviceSynchronize();
         CHECK_CUDA_ERROR(err);
 
