@@ -86,11 +86,13 @@ extern "C" {
 
         frame_storage.frame_count++;
 
+        int sharedMemSize = (blockSize.x + 2) * (blockSize.y + 2) * sizeof(rgb);
+
         compute_lab_image<<<gridSize, blockSize>>>(dBackground, dMask, pitch, width, height);
         err = cudaDeviceSynchronize();
         CHECK_CUDA_ERROR(err);
 
-        opening<<<gridSize, blockSize>>>(dMask, 3, width, height, pitch);
+        opening<<<gridSize, blockSize, sharedMemSize>>>(dMask, 3, width, height, pitch);
         err = cudaDeviceSynchronize();
         CHECK_CUDA_ERROR(err);
 
@@ -101,7 +103,7 @@ extern "C" {
         err = cudaDeviceSynchronize();
         CHECK_CUDA_ERROR(err);
 
-        hysterisis_compute<<<gridSize, blockSize>>>(dMask, low_threshold, high_threshold, width, height, pitch);
+        hysterisis_compute<<<gridSize, blockSize, sharedMemSize>>>(dMask, low_threshold, high_threshold, width, height, pitch);
         err = cudaDeviceSynchronize();
         CHECK_CUDA_ERROR(err);
 
