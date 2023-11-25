@@ -36,3 +36,5 @@ build
 # Trash
 .*
 *.webm
+
+video.mp4
