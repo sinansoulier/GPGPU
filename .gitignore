@@ -37,3 +37,4 @@ build
 .*
 *.webm
 video.mp4
+profiler/bench_mark.ipynb

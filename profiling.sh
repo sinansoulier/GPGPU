@@ -14,13 +14,14 @@ else
     output="video.mp4"  # Use the default value
 fi
 
-# nix-shell                                            # 1
+# nix-shell 
+rm -rf build/ *.mp4* *.so*                                             # 1
 cmake -S . -B build --preset release -D USE_CUDA=ON  # 2 (ou debug)
 cmake --build build                                  # 2
 
 # wget https://gstreamer.freedesktop.org/media/sintel_trailer-480p.webm # 3
 export GST_PLUGIN_PATH=$(pwd)                                         # 4
-ln -s ./build/build/libgstcudafilter-cu.so libgstcudafilter-cu.so          # 5
+ln -s ./build/libgstcudafilter-cu.so libgstcudafilter.so          # 5
 
 # Exécutez votre pipeline GStreamer
 
