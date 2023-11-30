@@ -4,11 +4,26 @@
 #include <cstdio>
 #include "../implem_cpp/utils.hh"
 
+/// Wrapper for pow function to be used in device code
+/// @param x base
+/// @param y exponent
+__device__ float devicePow(float x, float y)
+{
+    return pow(x, y);
+}
+
+/// Wrapper for sqrt function to be used in device code
+/// @param x value to compute the square root of
+__device__ float deviceSqrt(float x)
+{
+    return sqrt(x);
+}
+
 __device__ float linearize(float channel) {
     if (channel <= 0.04045)
         return channel / 12.92;
 
-    return pow((channel + 0.055) / 1.055, 2.4);
+    return devicePow((channel + 0.055) / 1.055, 2.4);
 }
 
 __device__ void rgb_to_xyz(rgb* rgb, xyz* xyz)
@@ -45,9 +60,9 @@ __device__ void xyz_to_lab(xyz* xyz, lab* lab)
 
     // Convert XYZ to Lab. This involves a piecewise function for each coordinate.
     // The constants and equations come from the official Lab color space definition.
-    x = (x > 0.008856) ? pow(x, 1.0/3.0) : (7.787 * x + 16.0/116.0);
-    y = (y > 0.008856) ? pow(y, 1.0/3.0) : (7.787 * y + 16.0/116.0);
-    z = (z > 0.008856) ? pow(z, 1.0/3.0) : (7.787 * z + 16.0/116.0);
+    x = (x > 0.008856) ? devicePow(x, 1.0/3.0) : (7.787 * x + 16.0/116.0);
+    y = (y > 0.008856) ? devicePow(y, 1.0/3.0) : (7.787 * y + 16.0/116.0);
+    z = (z > 0.008856) ? devicePow(z, 1.0/3.0) : (7.787 * z + 16.0/116.0);
     
     // Compute the L*, a*, and b* values from the transformed x, y, z coordinates.
     lab->l = (116.0 * y) - 16.0;
@@ -70,11 +85,11 @@ __device__ float compute_lab(rgb* pix_img_1, rgb* pix_img_2)
     xyz_to_lab(&xyz2, &lab2);
     
     float norm_coeff = 0.01;
-    float luminance_diff = pow(lab2.l - lab1.l, 2) * norm_coeff;
-    float a_diff = pow(lab2.a - lab1.a, 2) * norm_coeff;
-    float b_diff = pow(lab2.b - lab1.b, 2) * norm_coeff;
+    float luminance_diff = devicePow(lab2.l - lab1.l, 2);
+    float a_diff = devicePow(lab2.a - lab1.a, 2);
+    float b_diff = devicePow(lab2.b - lab1.b, 2);
     
-    float lab = sqrt(luminance_diff + a_diff + b_diff);
+    float lab = deviceSqrt((luminance_diff + a_diff + b_diff) * norm_coeff);
     return lab;
 }
 
