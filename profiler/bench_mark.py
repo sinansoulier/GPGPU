@@ -4,9 +4,9 @@ import re
 import argparse
 import os
 parser = argparse.ArgumentParser(description='Process some integers.')
-parser.add_argument('--file', type=str, default='analyse.csv',
+parser.add_argument('-f','--file', type=str, default='analyse.csv',
                     help='file name')
-parser.add_argument('--output-file', type=str, default='analyse.csv',
+parser.add_argument('-o','--output-file', type=str, default='analyse.csv',
                     help='output file name')
 csv_file = parser.parse_args().file
 output_file = parser.parse_args().output_file
@@ -49,4 +49,5 @@ def generate_clean_benchmark(csv_file):
 
 
 
-generate_clean_benchmark(csv_file)
+df = generate_clean_benchmark(csv_file)
+print(df)

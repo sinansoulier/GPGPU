@@ -33,8 +33,11 @@ csv_file="profiler/analyse.csv"
 # nsys profile -s cpu --stats true -o report.json gst-launch-1.0 uridecodebin uri=file://$(pwd)/$input ! videoconvert ! "video/x-raw, format=(string)RGB" ! cudafilter ! videoconvert ! video/x-raw, format=I420 ! x264enc ! mp4mux ! filesink location="$output" 
 #gdb  gst-launch-1.0 uridecodebin uri=file://$(pwd)/$input ! videoconvert ! "video/x-raw, format=(string)RGB" ! cudafilter ! videoconvert ! video/x-raw, format=I420 ! x264enc ! mp4mux ! filesink location="$output"  gmon.out 
 
-nvprof --csv --log-file $csv_file --trace gpu   gst-launch-1.0 uridecodebin uri=file://$(pwd)/$input ! videoconvert ! "video/x-raw, format=(string)RGB" ! cudafilter ! videoconvert ! video/x-raw, format=I420 ! x264enc ! mp4mux ! filesink location="$output" 
+nvprof --csv --log-file $csv_file   gst-launch-1.0 uridecodebin uri=file://$(pwd)/$input ! videoconvert ! "video/x-raw, format=(string)RGB" ! cudafilter ! videoconvert ! video/x-raw, format=I420 ! x264enc ! mp4mux ! filesink location="$output" > profiler/error.log
+
+cat profiler/error.log 
 cat $csv_file > tmp1.csv
+
 grep -Ev '==' tmp1.csv | grep -E ',' > $csv_file
 
 # Echo in green

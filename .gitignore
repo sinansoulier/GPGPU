@@ -44,3 +44,5 @@ profiler/benchmark.png
 profiler/benchmark1.png
 report.nsys-rep
 report.sqlite
+tmp1.csv
+profiler/error.log
