@@ -28,12 +28,31 @@ void check(T err, const char* const func, const char* const file,
 
 namespace
 {
-    static FrameStorage frame_storage = { 0 };
+    class CudaFrameStorage
+    {
+    public:
+        std::byte* average_background;
+        int width;
+        int height;
+        int pixel_stride;
+        int frame_count;
+        ~CudaFrameStorage()
+        {
+            cudaFree(average_background);
+        }
+    };
+    static CudaFrameStorage frame_storage = { 0 };
 }
 
 extern "C" {
     void filter_impl(uint8_t* src_buffer, int width, int height, int src_stride, int pixel_stride)
     {
+        assert(sizeof(rgb) == pixel_stride);
+        std::byte* dBuffer;
+        std::byte* dMask;
+        size_t pitch;
+        cudaError_t err;
+
         if (frame_storage.frame_count == 0)
         {
             frame_storage.frame_count = 1;
@@ -41,29 +60,19 @@ extern "C" {
             frame_storage.height = height;
             frame_storage.pixel_stride = src_stride;
 
-            uint8_t* background = new uint8_t[width * height * pixel_stride];
-            memcpy(background, src_buffer, width * height * pixel_stride);
+            std::byte* background;
+            err = cudaMallocPitch(&background, &pitch, width * sizeof(rgb), height);
+            CHECK_CUDA_ERROR(err);
+            err = cudaMemcpy2D(background, pitch, src_buffer, src_stride, width * sizeof(rgb), height, cudaMemcpyHostToDevice);
+            CHECK_CUDA_ERROR(err);
 
             frame_storage.average_background = background;
             frame_storage.frame_count++;
         }
-
-        assert(sizeof(rgb) == pixel_stride);
-        std::byte* dBuffer;
-        std::byte* dMask;
-        std::byte* dBackground;
-        size_t pitch;
-
-        cudaError_t err;
         
         err = cudaMallocPitch(&dBuffer, &pitch, width * sizeof(rgb), height);
         CHECK_CUDA_ERROR(err);
         err = cudaMemcpy2D(dBuffer, pitch, src_buffer, src_stride, width * sizeof(rgb), height, cudaMemcpyHostToDevice);
-        CHECK_CUDA_ERROR(err);
-
-        err = cudaMallocPitch(&dBackground, &pitch, width * sizeof(rgb), height);
-        CHECK_CUDA_ERROR(err);
-        err = cudaMemcpy2D(dBackground, pitch, frame_storage.average_background, frame_storage.pixel_stride, width * sizeof(rgb), height, cudaMemcpyHostToDevice);
         CHECK_CUDA_ERROR(err);
 
         err = cudaMallocPitch(&dMask, &pitch, width * sizeof(rgb), height);
@@ -76,21 +85,20 @@ extern "C" {
 
         if (frame_storage.frame_count % 30 == 0)
         {
-            update_background<<<gridSize, blockSize>>>(dMask, dBackground, pitch, frame_storage.frame_count - 1);
+            update_background<<<gridSize, blockSize>>>(dMask, frame_storage.average_background, pitch, frame_storage.frame_count - 1);
             err = cudaDeviceSynchronize();
-            CHECK_CUDA_ERROR(err);
-
-            err = cudaMemcpy2D(frame_storage.average_background, frame_storage.pixel_stride, dBackground, pitch, width * sizeof(rgb), height, cudaMemcpyDeviceToHost);
             CHECK_CUDA_ERROR(err);
         }
 
         frame_storage.frame_count++;
 
-        compute_lab_image<<<gridSize, blockSize>>>(dBackground, dMask, pitch, width, height);
+        int sharedMemSize = (blockSize.x + 2) * (blockSize.y + 2) * sizeof(rgb);
+
+        compute_lab_image<<<gridSize, blockSize>>>(frame_storage.average_background, dMask, pitch, width, height);
         err = cudaDeviceSynchronize();
         CHECK_CUDA_ERROR(err);
 
-        opening<<<gridSize, blockSize>>>(dMask, 3, width, height, pitch);
+        opening<<<gridSize, blockSize, sharedMemSize>>>(dMask, 3, width, height, pitch);
         err = cudaDeviceSynchronize();
         CHECK_CUDA_ERROR(err);
 
@@ -101,7 +109,7 @@ extern "C" {
         err = cudaDeviceSynchronize();
         CHECK_CUDA_ERROR(err);
 
-        hysterisis_compute<<<gridSize, blockSize>>>(dMask, low_threshold, high_threshold, width, height, pitch);
+        hysterisis_compute<<<gridSize, blockSize, sharedMemSize>>>(dMask, low_threshold, high_threshold, width, height, pitch);
         err = cudaDeviceSynchronize();
         CHECK_CUDA_ERROR(err);
 
@@ -113,7 +121,6 @@ extern "C" {
         CHECK_CUDA_ERROR(err);
 
         cudaFree(dBuffer);
-        cudaFree(dBackground);
         cudaFree(dMask);
 
         {
