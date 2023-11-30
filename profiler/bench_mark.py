@@ -2,16 +2,19 @@ import pandas as pd
 import numpy as np
 import re
 import argparse
+import matplotlib.pyplot as plt
 import os
 parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument('--file', type=str, default='analyse.csv',
                     help='file name')
-parser.add_argument('--output-file', type=str, default='analyse.csv',
+parser.add_argument('--output-file', type=str, default='clean_benchmark.csv',
                     help='output file name')
 csv_file = parser.parse_args().file
 output_file = parser.parse_args().output_file
 
 if csv_file is None:
+    # show usage
+    parser.print_help()
     csv_file = 'analyse.csv'
 if output_file is None:
     output_file = 'clean_benchmark.csv'
@@ -38,6 +41,12 @@ def generate_clean_benchmark(csv_file):
     df = df.drop(['Type'])
     df = df.astype(float)
     df.to_csv('clean_benchmark.csv')
+    df = df.T
+    fig, ax = plt.subplots(figsize=(20, 10))
+    df.plot(ax=ax, kind='bar')
+    
+    ax.set_xlabel('Function')
+    ax.set_title('Benchmark')
     return df
 
 generate_clean_benchmark(csv_file)

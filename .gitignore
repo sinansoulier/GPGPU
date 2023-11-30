@@ -38,3 +38,9 @@ build
 *.webm
 video.mp4
 
+github
+github.pub
+profiler/benchmark.png
+profiler/benchmark1.png
+report.nsys-rep
+report.sqlite
