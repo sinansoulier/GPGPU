@@ -20,7 +20,7 @@ cmake --build build                                  # 2
 
 # wget https://gstreamer.freedesktop.org/media/sintel_trailer-480p.webm # 3
 export GST_PLUGIN_PATH=$(pwd)                                         # 4
-ln -s ./build/build/libgstcudafilter-cu.so libgstcudafilter-cu.so          # 5
+ln -s ./build/libgstcudafilter-cu.so libgstcudafilter.so          # 5
 
 # Exécutez votre pipeline GStreamer
 
