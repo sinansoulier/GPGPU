@@ -28,9 +28,17 @@ ln -s ./build/libgstcudafilter-cu.so libgstcudafilter.so          # 5
 
 echo INPUT $input OUTPUT $(pwd)/$input 
 csv_file="profiler/analyse.csv"
-nvprof  --csv --log-file $csv_file --trace gpu  gst-launch-1.0 uridecodebin uri=file://$(pwd)/$input ! videoconvert ! "video/x-raw, format=(string)RGB" ! cudafilter ! videoconvert ! video/x-raw, format=I420 ! x264enc ! mp4mux ! filesink location="$output" 
-grep '\"' $csv_file > tmp.csv
-mv tmp.csv $csv_file
+# --trace gpu
+
+# nsys profile -s cpu --stats true -o report.json gst-launch-1.0 uridecodebin uri=file://$(pwd)/$input ! videoconvert ! "video/x-raw, format=(string)RGB" ! cudafilter ! videoconvert ! video/x-raw, format=I420 ! x264enc ! mp4mux ! filesink location="$output" 
+#gdb  gst-launch-1.0 uridecodebin uri=file://$(pwd)/$input ! videoconvert ! "video/x-raw, format=(string)RGB" ! cudafilter ! videoconvert ! video/x-raw, format=I420 ! x264enc ! mp4mux ! filesink location="$output"  gmon.out 
+
+nvprof --csv --log-file $csv_file   gst-launch-1.0 uridecodebin uri=file://$(pwd)/$input ! videoconvert ! "video/x-raw, format=(string)RGB" ! cudafilter ! videoconvert ! video/x-raw, format=I420 ! x264enc ! mp4mux ! filesink location="$output" > profiler/error.log
+
+cat profiler/error.log 
+cat $csv_file > tmp1.csv
+
+grep -Ev '==' tmp1.csv | grep -E ',' > $csv_file
 
 # Echo in green
 echo -e "\e[32mReport available in $csv_file\e[0m"
