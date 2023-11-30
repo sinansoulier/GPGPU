@@ -13,6 +13,7 @@ let
     };
     overlays = (attrValues nixpie.overlays) ++ [ nixpie.overrides.${system} ];
   };
+  
 in
 pkgs.mkShell {
   name = "cuda-env-shell";
@@ -27,6 +28,7 @@ pkgs.mkShell {
     xorg.libXext xorg.libX11 xorg.libXv xorg.libXrandr zlib pngpp tbb gbenchmark
     ncurses5 stdenv.cc binutils
     gst_all_1.gstreamer gst_all_1.gst-plugins-base gst_all_1.gst-plugins-ugly gst_all_1.gst-plugins-bad gst_all_1.gst-plugins-good
+    libstdcxx5
   ];
   shellHook = with pkgs; ''
     export CUDAHOSTCXX=${pkgs.gcc11}/bin/g++

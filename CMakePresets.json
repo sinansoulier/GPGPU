@@ -14,7 +14,8 @@
                 "_CMAKE_CXX_COMPILER": "clang++",
                 "_CMAKE_CUDA_ARCHITECTURES": "native",
                 "_CMAKE_CUDA_COMPILER" :  "/usr/local/cuda/bin/nvcc",
-                "_CMAKE_CUDA_HOST_COMPILER" : "clang++"
+                "_CMAKE_CUDA_HOST_COMPILER" : "clang++",
+                "CMAKE_CXX_FLAGS_INIT" : "-pg -g"
             }
         },
         {
@@ -30,7 +31,9 @@
                 "_CMAKE_CXX_COMPILER": "clang++",
                 "_CMAKE_CUDA_ARCHITECTURES": "native",
                 "_CMAKE_CUDA_COMPILER" :  "/usr/local/cuda/bin/nvcc",
-                "_CMAKE_CUDA_HOST_COMPILER" : "clang++"
+                "_CMAKE_CUDA_HOST_COMPILER" : "clang++",
+                "CMAKE_CXX_FLAGS_INIT" : "-pg -g"
+                
             }
         }
     ]
