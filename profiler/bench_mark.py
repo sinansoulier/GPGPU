@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import re
 import argparse
+import matplotlib.pyplot as plt
 import os
 parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument('-f','--file', type=str, default='analyse.csv',
@@ -33,18 +34,29 @@ def generate_clean_benchmark(csv_file):
     bench_mark_df = bench_mark_df.drop(['Name'])
     function_regex = re.compile(r'([\w_]+)\(')
     function_column = []
+    col_to_keep = ['[CUDA memcpy DtoH]',  '[CUDA memcpy HtoD]' ]
     for col in bench_mark_df.columns:
         
         matches = function_regex.findall(col)
         if len(matches) > 0:
             function_column.append(matches[0])
             bench_mark_df.rename(columns={col: matches[0]}, inplace=True)
+        elif col in col_to_keep:
+            function_column.append(col)
     bench_mark_df[function_column] 
     bench_mark_df = bench_mark_df[function_column]
     bench_mark_df.loc['Type']
     bench_mark_df = bench_mark_df.drop(['Type'])
     bench_mark_df = bench_mark_df.astype(float)
     bench_mark_df.to_csv('clean_benchmark.csv')
+    fig, ax = plt.subplots(figsize=(20, 10))
+    transposed_df = (bench_mark_df.drop(['Calls']).T)
+
+    transposed_df.plot(ax=ax, kind='bar',  rot=0)
+    ax.set_ylabel('Time (s)')
+    ax.set_xlabel('Function')
+    fig.tight_layout()
+    fig.savefig('benchmark1.png')
     return bench_mark_df
 
 
