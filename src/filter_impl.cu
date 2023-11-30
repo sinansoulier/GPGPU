@@ -28,15 +28,19 @@ void check(T err, const char* const func, const char* const file,
 
 namespace
 {
-    struct CudaFrameStorage
+    class CudaFrameStorage
     {
+    public:
         std::byte* average_background;
         int width;
         int height;
         int pixel_stride;
         int frame_count;
+        ~CudaFrameStorage()
+        {
+            cudaFree(average_background);
+        }
     };
-
     static CudaFrameStorage frame_storage = { 0 };
 }
 
