@@ -34,19 +34,22 @@ def generate_clean_benchmark(csv_file):
     bench_mark_df = bench_mark_df.drop(['Name'])
     function_regex = re.compile(r'([\w_]+)\(')
     function_column = []
+    col_to_keep = ['[CUDA memcpy DtoH]',  '[CUDA memcpy HtoD]' ]
     for col in bench_mark_df.columns:
         
         matches = function_regex.findall(col)
         if len(matches) > 0:
             function_column.append(matches[0])
             bench_mark_df.rename(columns={col: matches[0]}, inplace=True)
+        elif col in col_to_keep:
+            function_column.append(col)
     bench_mark_df[function_column] 
     bench_mark_df = bench_mark_df[function_column]
     bench_mark_df.loc['Type']
     bench_mark_df = bench_mark_df.drop(['Type'])
     bench_mark_df = bench_mark_df.astype(float)
     bench_mark_df.to_csv('clean_benchmark.csv')
-    fig, ax = plt.subplots(figsize=(10, 5))
+    fig, ax = plt.subplots(figsize=(20, 10))
     transposed_df = (bench_mark_df.drop(['Calls']).T)
 
     transposed_df.plot(ax=ax, kind='bar',  rot=0)
