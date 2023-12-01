@@ -17,7 +17,15 @@ target_link_libraries(gstcudafilter-base PkgConfig::GStreamerVideo)
 set_target_properties(gstcudafilter-base PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # FILTRE en CUDA
-add_library(gstcudafilter-cu SHARED src/filter_impl.h src/filter_impl.cu)
+add_library(gstcudafilter-cu
+             SHARED src/filter_impl.h src/filter_impl.cu
+             src/implem_cuda/background_update_cuda.cuh src/implem_cuda/background_update_cuda.cu
+             src/implem_cuda/lab_cuda.cuh src/implem_cuda/lab_cuda.cu
+             src/implem_cuda/remove_noise_cuda.cuh src/implem_cuda/remove_noise_cuda.cu
+             src/implem_cuda/hysterisis_cuda.cuh src/implem_cuda/hysterisis_cuda.cu
+             src/implem_cuda/mask_cuda.cuh src/implem_cuda/mask_cuda.cu
+             src/implem_cpp/utils.hh
+            )
 target_link_libraries(gstcudafilter-cu PkgConfig::GStreamerVideo gstcudafilter-base)
 
 # FILTRE EN C++
