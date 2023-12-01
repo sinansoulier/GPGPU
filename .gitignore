@@ -36,3 +36,14 @@ build
 # Trash
 .*
 *.webm
+video.mp4
+github
+github.pub
+profiler/benchmark.png
+profiler/benchmark1.png
+profiler/clean_benchmark.csv
+profiler/clean_benchmark_GPU_naive.csv
+profiler/error.log
+report.nsys-rep
+report.sqlite
+tmp1.csv

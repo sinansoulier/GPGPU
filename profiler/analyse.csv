@@ -1,0 +1,13 @@
+"Type","Time(%)","Time","Calls","Avg","Min","Max","Name"
+,%,s,,ms,ms,ms,
+"GPU activities",93.982913,2.087254,400,5.218134,5.135373,6.759007,"compute_lab_image(std::byte*, std::byte*, int, int, int)"
+"GPU activities",2.636395,0.058551,1200,0.048792,0.046526,0.076605,"[CUDA memcpy HtoD]"
+"GPU activities",2.183847,0.048501,1213,0.039984,0.015520,0.093821,"[CUDA memcpy DtoH]"
+"GPU activities",0.478697,0.010631,400,0.026578,0.025439,0.036607,"opening(std::byte*, int, int, int, int)"
+"GPU activities",0.246675,0.005478,400,0.013695,0.007328,0.022399,"hysterisis_compute(std::byte*, int, int, int, int, int)"
+"GPU activities",0.209025,0.004642,400,0.011605,0.010623,0.021632,"hysterisis_mark(std::byte*, int, int, int)"
+"GPU activities",0.131081,0.002911,400,0.007277,0.006240,0.016383,"mask(std::byte*, std::byte*, int, int, int, float)"
+"GPU activities",0.109744,0.002437,400,0.006093,0.005184,0.013024,"ConvertNV12BLtoNV12"
+"GPU activities",0.011806,0.000262,13,0.020169,0.019168,0.021056,"update_background(std::byte*, std::byte*, int, int)"
+"GPU activities",0.008166,0.000181,64,0.002833,0.000640,0.003232,"[CUDA memset]"
+"GPU activities",0.001651,0.000037,10,0.003667,0.002463,0.011039,"MemsetD2D_BL"
